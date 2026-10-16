@@ -6,9 +6,19 @@ aqui.
 
 ## Estado
 
-Sem código ainda. O trabalho é o **cartão 10.1** do `TASKS-PROGRESS.md` da raiz e
-do quadro no Notion. Não se escreve código aqui antes de a API ter as rotas que
-ele chama: um SDK escrito contra uma API imaginada é um SDK que se reescreve.
+O SDK é o **cartão 10.1** do `TASKS-PROGRESS.md` da raiz e do quadro no Notion.
+
+**Já existe** a verificação dos webhooks, que entrou com o cartão 5.3 (é o que o
+servidor externo usa para validar a assinatura):
+
+| Pasta | O que é |
+|---|---|
+| `webhook/` | `Verifier` (segredos, `Tolerance` com 5 minutos por omissão, `Now`), `Verify`, `ConstructEvent`, `ParseRequest`, `Sign`; erros tipados (`*VerificationError` com `Reason` um dos `Err*`, por `errors.Is`); o `Event` do envelope. 100% de cobertura, e testes `Example` |
+| `examples/receber-webhooks/` | Um servidor de comerciante que verifica com o pacote e conta as receções de cada `id`. Serve de servidor externo nas provas de ponta a ponta |
+
+**Ainda não existe** o cliente da API (criar e consultar sessões, estornar,
+idempotência automática): não se escreve antes de a API ter as rotas que ele
+chama.
 
 ## Regras que valem aqui
 
@@ -23,8 +33,9 @@ ele chama: um SDK escrito contra uma API imaginada é um SDK que se reescreve.
   europeu, sem travessão.
 - Commits só pelos scripts da raiz (`../scripts/commit.sh`).
 
-## Comandos (quando houver código)
+## Comandos
 
 ```bash
-gofmt -l . && go vet ./... && go test -race ./...
+gofmt -l . && go vet ./... && go test -race -cover ./...
+go run ./examples/receber-webhooks -segredos whsec_... -porta 8099
 ```
