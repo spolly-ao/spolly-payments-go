@@ -6,11 +6,11 @@ verificar a assinatura dos webhooks. Só a biblioteca padrão, Go 1.26 ou mais
 recente.
 
 ```bash
-GOPRIVATE=github.com/spolly-ao/* go get github.com/spolly-ao/spolly-payments-go@v0.1.0
+go get github.com/spolly-ao/spolly-payments-go@v0.1.0
 ```
 
-O repositório é privado da casa: o `GOPRIVATE` faz o `go` ir buscá-lo ao GitHub
-com as credenciais do `git`, e não ao proxy público.
+O repositório é público: o `go` vai buscá-lo pelo proxy público, sem
+credenciais nem variáveis especiais.
 
 ## Os nomes, que não mudam
 
