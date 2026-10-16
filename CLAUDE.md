@@ -8,17 +8,16 @@ aqui.
 
 O SDK é o **cartão 10.1** do `TASKS-PROGRESS.md` da raiz e do quadro no Notion.
 
-**Já existe** a verificação dos webhooks, que entrou com o cartão 5.3 (é o que o
-servidor externo usa para validar a assinatura):
-
 | Pasta | O que é |
 |---|---|
+| `.` (pacote `spolly`) | O cliente da API: `NewClient` e as opções, `CreateCheckoutSession`, `GetCheckoutSession`, `CreateRefund`, `GetRefund`, `GetAccount`, `GetSubscription`, `CancelSubscription`, `CreateSubscriptionPortalLink`; `Idempotency-Key` automática (a mesma nas retentativas), retentativas em rede, 429 e 5xx com `Retry-After`, tempo limite por tentativa; `*Error` com o código estável da API; `ErrInvalidResponse` em vez de um objeto vazio. 100% de cobertura, e um teste `Example` por operação |
 | `webhook/` | `Verifier` (segredos, `Tolerance` com 5 minutos por omissão, `Now`), `Verify`, `ConstructEvent`, `ParseRequest`, `Sign`; erros tipados (`*VerificationError` com `Reason` um dos `Err*`, por `errors.Is`); o `Event` do envelope. 100% de cobertura, e testes `Example` |
+| `examples/checkout/` | O percurso inteiro: confirma a chave, cria uma sessão, espera pelo `payment.succeeded` dela (verificado com o SDK) e lê a sessão paga. Foi assim que o cartão 10.1 se verificou contra a API e o worker a correr |
 | `examples/receber-webhooks/` | Um servidor de comerciante que verifica com o pacote e conta as receções de cada `id`. Serve de servidor externo nas provas de ponta a ponta |
 
-**Ainda não existe** o cliente da API (criar e consultar sessões, estornar,
-idempotência automática): não se escreve antes de a API ter as rotas que ele
-chama.
+**Os nomes exportados são estáveis** (a documentação em `payments.spolly.ao/docs`
+cita-os): mudar um nome é uma versão maior. Uma rota nova da `/v1` entra aqui no
+mesmo trabalho em que entra no `contratos/openapi.yaml`, com teste e `Example`.
 
 ## Regras que valem aqui
 
@@ -38,4 +37,8 @@ chama.
 ```bash
 gofmt -l . && go vet ./... && go test -race -cover ./...
 go run ./examples/receber-webhooks -segredos whsec_... -porta 8099
+SPOLLY_SECRET_KEY=sk_test_... SPOLLY_WEBHOOK_SECRETS=whsec_... go run ./examples/checkout -api http://localhost:8084 -porta 7400
 ```
+
+Para usar o módulo noutro antes da etiqueta: um `go.work` fora do repositório,
+nunca um `replace` commitado.
