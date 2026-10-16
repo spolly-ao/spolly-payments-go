@@ -182,4 +182,4 @@ use (
 ## Quem o usa primeiro
 
 Os quatro produtos da casa, que são todos Go: o Saluto, o Spolly, o RotaLar e o
-Aduela (cartões 13.1 a 13.4).
+Aduela.

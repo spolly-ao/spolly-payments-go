@@ -6,13 +6,13 @@ aqui.
 
 ## Estado
 
-O SDK é o **cartão 10.1** do `TASKS-PROGRESS.md` da raiz e do quadro no Notion.
+O estado do trabalho vive no super projeto `spolly-payments`, que liga este repositório por submódulo. Este repositório é público: aqui não se fala em cartões, em clientes, nem em caminhos de máquinas.
 
 | Pasta | O que é |
 |---|---|
 | `.` (pacote `spolly`) | O cliente da API: `NewClient` e as opções, `CreateCheckoutSession`, `GetCheckoutSession`, `CreateRefund`, `GetRefund`, `GetAccount`, `GetSubscription`, `CancelSubscription`, `CreateSubscriptionPortalLink`; `Idempotency-Key` automática (a mesma nas retentativas), retentativas em rede, 429 e 5xx com `Retry-After`, tempo limite por tentativa; `*Error` com o código estável da API; `ErrInvalidResponse` em vez de um objeto vazio. 100% de cobertura, e um teste `Example` por operação |
 | `webhook/` | `Verifier` (segredos, `Tolerance` com 5 minutos por omissão, `Now`), `Verify`, `ConstructEvent`, `ParseRequest`, `Sign`; erros tipados (`*VerificationError` com `Reason` um dos `Err*`, por `errors.Is`); o `Event` do envelope. 100% de cobertura, e testes `Example` |
-| `examples/checkout/` | O percurso inteiro: confirma a chave, cria uma sessão, espera pelo `payment.succeeded` dela (verificado com o SDK) e lê a sessão paga. Foi assim que o cartão 10.1 se verificou contra a API e o worker a correr |
+| `examples/checkout/` | O percurso inteiro: confirma a chave, cria uma sessão, espera pelo `payment.succeeded` dela (verificado com o SDK) e lê a sessão paga, contra a API e o worker a correr |
 | `examples/receber-webhooks/` | Um servidor de comerciante que verifica com o pacote e conta as receções de cada `id`. Serve de servidor externo nas provas de ponta a ponta |
 
 **Os nomes exportados são estáveis** (a documentação em `payments.spolly.ao/docs`
