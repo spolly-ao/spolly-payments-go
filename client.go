@@ -54,7 +54,7 @@ import (
 )
 
 // Version é a versão deste SDK, que vai no User-Agent.
-const Version = "0.1.0"
+const Version = "0.2.0"
 
 // DefaultBaseURL é a API de produção. As chaves sk_test_ também a usam: o modo
 // é o da chave, e não o do endereço.

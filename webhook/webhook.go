@@ -112,8 +112,12 @@ type Event struct {
 	CreatedAt  time.Time `json:"created_at"`
 	Mode       string    `json:"mode"`
 	MerchantID string    `json:"merchant_id"`
-	APIVersion string    `json:"api_version"`
-	Data       EventData `json:"data"`
+	// Application é a aplicação do comerciante de onde o evento vem (a da
+	// chave de API ou do link que criou a sessão), ou nil. O Spolly Payments
+	// só entrega um evento aos endpoints da mesma aplicação.
+	Application *string   `json:"application"`
+	APIVersion  string    `json:"api_version"`
+	Data        EventData `json:"data"`
 }
 
 // EventData leva o objeto do evento, em bruto: lê-se para o tipo certo pelo
