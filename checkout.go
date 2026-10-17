@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// Currency é a moeda. USD e EUR só pelo cartão.
+// Currency é a moeda. USD e EUR só pelo cartão; BRL pelo cartão e pelo Pix.
 type Currency string
 
 // As moedas.
@@ -15,17 +15,19 @@ const (
 	AOA Currency = "AOA"
 	USD Currency = "USD"
 	EUR Currency = "EUR"
+	BRL Currency = "BRL"
 )
 
 // PaymentMethod é um método de pagamento do checkout.
 type PaymentMethod string
 
-// Os métodos: Multicaixa Express, referência, BAI Paga e cartão.
+// Os métodos: Multicaixa Express, referência, BAI Paga, cartão e Pix (só em BRL).
 const (
 	MethodMCX       PaymentMethod = "mcx"
 	MethodReference PaymentMethod = "reference"
 	MethodBAIPaga   PaymentMethod = "baipaga"
 	MethodCard      PaymentMethod = "card"
+	MethodPix       PaymentMethod = "pix"
 )
 
 // Mode é o modo de uma chave e de tudo o que ela cria.
