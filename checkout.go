@@ -21,13 +21,23 @@ const (
 // PaymentMethod é um método de pagamento do checkout.
 type PaymentMethod string
 
-// Os métodos: Multicaixa Express, referência, BAI Paga, cartão e Pix (só em BRL).
+// Os métodos: Multicaixa Express, referência, BAI Paga, cartão, Pix (só em BRL),
+// transferência bancária e débito direto. Os dois últimos existem só em AOA e
+// só se oferecem quando a sessão os pede por nome em PaymentMethods: uma lista
+// vazia não os inclui.
 const (
 	MethodMCX       PaymentMethod = "mcx"
 	MethodReference PaymentMethod = "reference"
 	MethodBAIPaga   PaymentMethod = "baipaga"
 	MethodCard      PaymentMethod = "card"
 	MethodPix       PaymentMethod = "pix"
+	// MethodBankTransfer é a transferência bancária: o comprador transfere para
+	// a conta de receção da Spolly com um descritivo único, e o pagamento fica
+	// pendente até 7 dias, até ser confirmado no extrato.
+	MethodBankTransfer PaymentMethod = "bank_transfer"
+	// MethodDirectDebit é o débito direto: o comprador autoriza um mandato no
+	// banco dele, e a cobrança apresenta-se contra o mandato.
+	MethodDirectDebit PaymentMethod = "direct_debit"
 )
 
 // Mode é o modo de uma chave e de tudo o que ela cria.
@@ -93,6 +103,60 @@ type CheckoutSessionParams struct {
 	// Subscription é o plano de uma sessão KindSubscription: obrigatório nela,
 	// e recusado nas outras. O preço de cada ciclo é o Amount da sessão.
 	Subscription *SubscriptionPlan `json:"subscription,omitempty"`
+	// PlatformFee é a comissão de uma plataforma que vende em nome do
+	// comerciante da chave: o comerciante tem de a ter autorizado no painel,
+	// e o Amount nunca passa o máximo dele. Numa sessão KindSubscription,
+	// repete-se em cada renovação. nil sem comissão.
+	PlatformFee *PlatformFee `json:"platform_fee,omitempty"`
+}
+
+// PlatformFee é a comissão de uma plataforma num pagamento: a plataforma que
+// a recebe (o identificador de comerciante dela, mer_...) e o valor, em
+// unidades menores da moeda da sessão (em AOA, múltiplo de 100).
+type PlatformFee struct {
+	Platform string `json:"platform"`
+	Amount   int64  `json:"amount"`
+}
+
+// Os motivos de uma comissão pedida que não se aplicou a um pagamento
+// (Payment.PlatformFeeSkipped): o pagamento entrou sem comissão.
+const (
+	// PlatformFeeAuthorizationRevoked: o comerciante revogou a autorização.
+	PlatformFeeAuthorizationRevoked = "authorization_revoked"
+	// PlatformFeeAboveMaximum: o máximo autorizado já não cobre a comissão.
+	PlatformFeeAboveMaximum = "above_maximum"
+	// PlatformFeeExceedsNet: a comissão já não cabe no líquido do comerciante.
+	PlatformFeeExceedsNet = "exceeds_net"
+)
+
+// Payment é o objeto de um pagamento nos eventos payment.succeeded e
+// payment.failed (o Data.Object do webhook.Event). Lê-se com
+// json.Unmarshal(evento.Data.Object, &p).
+type Payment struct {
+	ID                string `json:"id"`
+	Object            string `json:"object"`
+	CheckoutSessionID string `json:"checkout_session_id"`
+	// Status é "succeeded" ou "failed".
+	Status string `json:"status"`
+	Amount Money  `json:"amount"`
+	// Fee é a taxa do Spolly Payments.
+	Fee Money `json:"fee"`
+	// Net é o que fica ao comerciante: Amount menos Fee e menos a comissão
+	// da plataforma, quando a há.
+	Net    Money         `json:"net"`
+	Method PaymentMethod `json:"method"`
+	// FailureReason diz porque falhou, só nos falhados.
+	FailureReason string            `json:"failure_reason,omitempty"`
+	CreatedAt     time.Time         `json:"created_at"`
+	Metadata      map[string]string `json:"metadata"`
+	// PaidAfterExpiry diz que o pagamento entrou depois do prazo da sessão.
+	PaidAfterExpiry bool `json:"paid_after_expiry,omitempty"`
+	// PlatformFee é a comissão que a plataforma recebeu neste pagamento, ou
+	// nil.
+	PlatformFee *PlatformFee `json:"platform_fee"`
+	// PlatformFeeSkipped diz porque uma comissão pedida não se aplicou (um
+	// dos PlatformFee*), ou vazio.
+	PlatformFeeSkipped string `json:"platform_fee_skipped,omitempty"`
 }
 
 // Os tipos de sessão. Chama-se kind, e não mode, porque o Mode é o modo da
@@ -171,6 +235,12 @@ type CheckoutSession struct {
 	// Subscription é o plano e a subscrição, numa sessão de subscrição ou de
 	// renovação; nil numa de pagamento.
 	Subscription *SessionSubscription `json:"subscription"`
+	// Application é a aplicação do comerciante de onde a sessão vem (app_...):
+	// a da chave que a criou, a do link, ou a da subscrição numa renovação.
+	// nil sem aplicação. Os eventos dela levam-na em "application".
+	Application *string `json:"application"`
+	// PlatformFee é a comissão da plataforma que a sessão pede, ou nil.
+	PlatformFee *PlatformFee `json:"platform_fee"`
 }
 
 func (s *CheckoutSession) valido() bool {

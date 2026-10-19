@@ -6,7 +6,7 @@ verificar a assinatura dos webhooks. Só a biblioteca padrão, Go 1.26 ou mais
 recente.
 
 ```bash
-go get github.com/spolly-ao/spolly-payments-go@v0.3.0
+go get github.com/spolly-ao/spolly-payments-go@v0.4.0
 ```
 
 O repositório é público: o `go` vai buscá-lo pelo proxy público, sem
@@ -28,7 +28,7 @@ credenciais nem variáveis especiais.
 | `spolly` | `WithIdempotencyKey(k)`, `NewIdempotencyKey()` | A `Idempotency-Key` de um `POST` |
 | `spolly` | `*Error` (`StatusCode`, `Code`, `Message`, `Fields`, `IdempotencyKey`), `ErrorCode(err)`, `Code*` | As recusas da API |
 | `spolly` | `ErrInvalidResponse`, `ErrNoKey` | Uma resposta que não se lê; chamar sem chave |
-| `spolly` | `Money`, `AOA`, `USD`, `EUR`, `Method*`, `Mode*`, `Session*`, `Refund*`, `Subscription*`, `Kind*`, `Interval*` | Os tipos e os valores do contrato |
+| `spolly` | `Money`, `AOA`, `USD`, `EUR`, `Method*` (com `MethodBankTransfer` e `MethodDirectDebit`, só em AOA e só quando pedidos), `Mode*`, `Session*`, `Refund*`, `Subscription*`, `Renewal*`, `Kind*`, `Interval*` | Os tipos e os valores do contrato |
 | `webhook` | `Verifier`, `Verify`, `ConstructEvent`, `(Verifier).ParseRequest`, `Sign` | A assinatura dos webhooks |
 | `webhook` | `*VerificationError`, `Err*`, `Event`, `Event*` | As recusas, o envelope e os tipos de evento |
 
@@ -110,6 +110,26 @@ sessao, err := cliente.CreateCheckoutSession(ctx, &spolly.CheckoutSessionParams{
 sub, err := cliente.GetSubscription(ctx, *lida.Subscription.ID)
 link, err := cliente.CreateSubscriptionPortalLink(ctx, sub.ID) // mandar link.URL ao cliente
 sub, err = cliente.CancelSubscription(ctx, sub.ID, nil)        // no fim do ciclo pago
+```
+
+## Comissão de plataforma
+
+Uma plataforma que vende em nome de um comerciante cria a sessão com a chave
+dele e fica com uma comissão no próprio pagamento. O comerciante tem de a ter
+autorizado no painel, com um máximo.
+
+```go
+hotel := spolly.NewClient(os.Getenv("CHAVE_DO_HOTEL"))
+sessao, err := hotel.CreateCheckoutSession(ctx, &spolly.CheckoutSessionParams{
+	Amount: 1500000, Currency: spolly.AOA, Description: "Duas noites",
+	PlatformFee: &spolly.PlatformFee{Platform: "mer_38IAs7qmknSwC1F9XYtR1b", Amount: 150000},
+})
+// Recusas: spolly.CodePlatformNotAuthorized (403),
+// CodePlatformFeeAboveMaximum e CodePlatformFeeInvalid (422).
+
+// No payment.succeeded, o Payment diz o que a plataforma recebeu.
+var p spolly.Payment
+_ = json.Unmarshal(evento.Data.Object, &p) // p.PlatformFee, p.Net
 ```
 
 ## O que o cliente faz sozinho

@@ -21,6 +21,20 @@ const (
 	SubscriptionExpired = "expired"
 )
 
+// Renewal diz como renova o ciclo seguinte de uma subscrição.
+type Renewal string
+
+// Os modos de renovação.
+const (
+	// RenewalAutomatic: o ciclo cobra-se sozinho, sem o cliente agir (o cartão
+	// e o débito direto). Se a cobrança falhar, a subscrição passa a past_due
+	// e o cliente recebe o aviso com o link do ciclo.
+	RenewalAutomatic Renewal = "automatic"
+	// RenewalNotice: o cliente recebe o aviso com o link do ciclo e paga
+	// (Multicaixa Express, referência, BAI Paga, Pix, transferência).
+	RenewalNotice Renewal = "notice"
+)
+
 // Subscription é uma subscrição. Nasce do primeiro pagamento de uma sessão
 // KindSubscription; cada ciclo seguinte é um pagamento normal, com o seu
 // payment.succeeded.
@@ -41,6 +55,9 @@ type Subscription struct {
 	CurrentPeriodEnd time.Time `json:"current_period_end"`
 	// Method é o método do próximo ciclo.
 	Method PaymentMethod `json:"method"`
+	// Renewal diz como renova o ciclo seguinte: RenewalAutomatic ou
+	// RenewalNotice.
+	Renewal Renewal `json:"renewal"`
 	// CancelAtPeriodEnd: o cancelamento foi pedido para o fim do ciclo; a
 	// subscrição continua active até CurrentPeriodEnd e não renova.
 	CancelAtPeriodEnd bool       `json:"cancel_at_period_end"`

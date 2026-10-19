@@ -19,6 +19,10 @@ const (
 	// 401
 	CodeNoKey      = "sem_chave"
 	CodeInvalidKey = "chave_invalida"
+	// 403
+	// CodePlatformNotAuthorized: a sessão pede PlatformFee, e o comerciante
+	// da chave não autorizou essa plataforma.
+	CodePlatformNotAuthorized = "plataforma_nao_autorizada"
 	// 404
 	CodeSessionNotFound = "sessao_nao_existe"
 	CodePaymentNotFound = "pagamento_nao_existe"
@@ -37,6 +41,12 @@ const (
 	CodeCurrencyWithoutGateway = "moeda_sem_gateway"
 	CodeMethodWithoutGateway   = "metodo_sem_gateway"
 	CodeRefundExceedsCharged   = "estorno_acima_do_cobrado"
+	// CodePlatformFeeAboveMaximum: a comissão da plataforma passa o máximo
+	// que o comerciante autorizou.
+	CodePlatformFeeAboveMaximum = "comissao_acima_do_maximo"
+	// CodePlatformFeeInvalid: a comissão é zero, negativa, da própria
+	// plataforma, ou deixava o comerciante sem líquido.
+	CodePlatformFeeInvalid = "comissao_invalida"
 	// 500 e 503
 	CodeInternal    = "erro_interno"
 	CodeUnavailable = "indisponivel"

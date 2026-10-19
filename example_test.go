@@ -2,6 +2,7 @@ package spolly_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -31,6 +32,17 @@ func apiDeEnsaio() *httptest.Server {
 			if strings.Contains(string(corpo), `"currency":""`) {
 				w.WriteHeader(422)
 				io.WriteString(w, `{"erro":"dados_invalidos","mensagem":"Há campos por corrigir.","campos":{"currency":"Falta a moeda: AOA, USD ou EUR."}}`)
+				return
+			}
+			if strings.Contains(string(corpo), `"platform_fee"`) {
+				if strings.Contains(string(corpo), `"amount":900000}`) {
+					w.WriteHeader(422)
+					io.WriteString(w, `{"erro":"comissao_acima_do_maximo","mensagem":"A comissão passa o máximo que o comerciante autorizou (1000 pontos-base, 150000 unidades menores nesta sessão)."}`)
+					return
+				}
+				s := sessao("open", `null`, `null`)
+				w.WriteHeader(201)
+				io.WriteString(w, s[:len(s)-1]+`,"application":"app_7Kq2Lm4Rt8Vx1Zb6Nc3Kd0","platform_fee":{"platform":"mer_38IAs7qmknSwC1F9XYtR1b","amount":150000}}`)
 				return
 			}
 			w.WriteHeader(201)
@@ -305,4 +317,53 @@ func ExampleNewClient() {
 	fmt.Println(cliente != nil)
 	// Output:
 	// true
+}
+
+// Uma plataforma que vende em nome de um comerciante cria a sessão com a chave
+// dele e fica com uma comissão no próprio pagamento. O comerciante tem de a
+// ter autorizado no painel; acima do máximo dele, a API recusa.
+func ExampleClient_CreateCheckoutSession_platformFee() {
+	api := apiDeEnsaio()
+	defer api.Close()
+
+	hotel := spolly.NewClient("sk_test_chave_do_hotel", spolly.WithBaseURL(api.URL))
+	sessao, err := hotel.CreateCheckoutSession(context.Background(), &spolly.CheckoutSessionParams{
+		Amount:      1500000,
+		Currency:    spolly.AOA,
+		Description: "Duas noites, quarto duplo",
+		PlatformFee: &spolly.PlatformFee{Platform: "mer_38IAs7qmknSwC1F9XYtR1b", Amount: 150000},
+	})
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(sessao.PlatformFee.Amount, *sessao.Application)
+
+	_, err = hotel.CreateCheckoutSession(context.Background(), &spolly.CheckoutSessionParams{
+		Amount:      1500000,
+		Currency:    spolly.AOA,
+		Description: "Duas noites, quarto duplo",
+		PlatformFee: &spolly.PlatformFee{Platform: "mer_38IAs7qmknSwC1F9XYtR1b", Amount: 900000},
+	})
+	fmt.Println(spolly.ErrorCode(err) == spolly.CodePlatformFeeAboveMaximum)
+	// Output:
+	// 150000 app_7Kq2Lm4Rt8Vx1Zb6Nc3Kd0
+	// true
+}
+
+// O pagamento de um payment.succeeded, com a comissão da plataforma: o Net é
+// o que fica ao comerciante.
+func ExamplePayment() {
+	objeto := []byte(`{"id":"pay_9Hq2Lm4Rt8Vx1Zb6Nc3Kd0","object":"payment","checkout_session_id":"cs_test_4f8Gk2LmQ9rT1vXz7bN3cH6sW0pY5aDe",
+"status":"succeeded","amount":{"amount":1500000,"currency":"AOA"},"fee":{"amount":37500,"currency":"AOA"},
+"net":{"amount":1312500,"currency":"AOA"},"method":"mcx","created_at":"2026-11-29T10:17:12Z","metadata":{},
+"platform_fee":{"platform":"mer_38IAs7qmknSwC1F9XYtR1b","amount":150000}}`)
+	var p spolly.Payment
+	if err := json.Unmarshal(objeto, &p); err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(p.Net.Amount, p.PlatformFee.Platform, p.PlatformFee.Amount, p.PlatformFeeSkipped == "")
+	// Output:
+	// 1312500 mer_38IAs7qmknSwC1F9XYtR1b 150000 true
 }

@@ -480,7 +480,7 @@ func TestUmaSessaoDeSubscricao(t *testing.T) {
 
 const subscricaoJSON = `{"id":"sub_8Kq2Lm4Rt8Vx1Zb6Nc3Kd0","object":"subscription","status":"active","amount":{"amount":500000,"currency":"AOA"},
 "interval":"month","cycles":null,"cycle":2,"current_period_start":"2026-11-29T10:15:00Z","current_period_end":"2026-12-29T10:15:00Z",
-"method":"mcx","cancel_at_period_end":true,"cancelled_at":"2026-12-01T09:00:00Z","cancelled_by":"merchant",
+"method":"mcx","renewal":"notice","cancel_at_period_end":true,"cancelled_at":"2026-12-01T09:00:00Z","cancelled_by":"merchant",
 "checkout_session_id":"cs_test_4f8Gk2LmQ9rT1vXz7bN3cH6sW0pY5aDe","latest_payment_id":"pay_1","customer":{"email":"c@exemplo.ao","name":"","phone":""},"metadata":{"plano":"mensal"}}`
 
 func TestSubscricoes(t *testing.T) {
@@ -493,7 +493,7 @@ func TestSubscricoes(t *testing.T) {
 	ctx := context.Background()
 	sub, err := c.GetSubscription(ctx, "sub_8Kq2Lm4Rt8Vx1Zb6Nc3Kd0")
 	if err != nil || sub.Status != SubscriptionActive || sub.Cycles != nil || sub.Cycle != 2 || !sub.CancelAtPeriodEnd ||
-		*sub.CancelledBy != "merchant" || sub.Amount.Amount != 500000 || sub.Method != MethodMCX || sub.CurrentPeriodEnd.Day() != 29 {
+		*sub.CancelledBy != "merchant" || sub.Amount.Amount != 500000 || sub.Method != MethodMCX || sub.Renewal != RenewalNotice || sub.CurrentPeriodEnd.Day() != 29 {
 		t.Fatalf("%+v %v", sub, err)
 	}
 	if _, err := c.CancelSubscription(ctx, "sub_8Kq2Lm4Rt8Vx1Zb6Nc3Kd0", nil); err != nil {
