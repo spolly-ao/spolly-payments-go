@@ -45,6 +45,12 @@ func apiDeEnsaio() *httptest.Server {
 				io.WriteString(w, s[:len(s)-1]+`,"application":"app_7Kq2Lm4Rt8Vx1Zb6Nc3Kd0","platform_fee":{"platform":"mer_38IAs7qmknSwC1F9XYtR1b","amount":150000}}`)
 				return
 			}
+			if strings.Contains(string(corpo), `"first_cycle_amount":250000`) {
+				s := strings.Replace(sessao("open", `null`, `null`), `"amount":1500000`, `"amount":500000`, 1)
+				w.WriteHeader(201)
+				io.WriteString(w, s[:len(s)-1]+`,"kind":"subscription","subscription":{"id":null,"interval":"month","cycles":null,"cycle":null,"first_cycle_amount":250000}}`)
+				return
+			}
 			w.WriteHeader(201)
 			io.WriteString(w, sessao("open", `null`, `null`))
 		case "GET /v1/checkout/sessions/cs_test_4f8Gk2LmQ9rT1vXz7bN3cH6sW0pY5aDe":
@@ -366,4 +372,28 @@ func ExamplePayment() {
 	fmt.Println(p.Net.Amount, p.PlatformFee.Platform, p.PlatformFee.Amount, p.PlatformFeeSkipped == "")
 	// Output:
 	// 1312500 mer_38IAs7qmknSwC1F9XYtR1b 150000 true
+}
+
+// Um cupão que vale só no primeiro mês: o primeiro ciclo cobra 2.500 Kz, e os
+// seguintes o preço cheio, 5.000 Kz. No cartão, o Stripe renova sozinho pelo
+// preço cheio.
+func ExampleClient_CreateCheckoutSession_firstCycle() {
+	api := apiDeEnsaio()
+	defer api.Close()
+
+	cliente := spolly.NewClient("sk_test_exemplo", spolly.WithBaseURL(api.URL))
+	sessao, err := cliente.CreateCheckoutSession(context.Background(), &spolly.CheckoutSessionParams{
+		Amount:       500000,
+		Currency:     spolly.AOA,
+		Description:  "Plano mensal",
+		Kind:         spolly.KindSubscription,
+		Subscription: &spolly.SubscriptionPlan{Interval: spolly.IntervalMonth, FirstCycleAmount: 250000},
+	})
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(sessao.Amount.Amount, *sessao.Subscription.FirstCycleAmount)
+	// Output:
+	// 500000 250000
 }

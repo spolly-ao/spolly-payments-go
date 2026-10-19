@@ -531,3 +531,20 @@ func TestSubscricoes(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// O objeto payment dos eventos diz para onde foi o dinheiro: a transferência
+// bancária entra direta na conta do comerciante.
+func TestOPagamentoDizParaOndeFoiODinheiro(t *testing.T) {
+	var p Payment
+	corpo := `{"id":"pay_1","object":"payment","status":"succeeded","amount":{"amount":1500000,"currency":"AOA"},` +
+		`"fee":{"amount":37500,"currency":"AOA"},"net":{"amount":1462500,"currency":"AOA"},"settlement":"merchant_account","method":"bank_transfer"}`
+	if err := json.Unmarshal([]byte(corpo), &p); err != nil {
+		t.Fatal(err)
+	}
+	if p.Settlement != SettlementMerchantAccount || p.Method != MethodBankTransfer || p.Net.Amount != 1462500 {
+		t.Fatalf("%+v", p)
+	}
+	if SettlementBalance != "balance" || CodePaidToMerchantAccount != "pago_na_conta_do_comerciante" {
+		t.Fatal("os valores do contrato mudaram")
+	}
+}

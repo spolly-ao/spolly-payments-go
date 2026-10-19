@@ -31,9 +31,10 @@ const (
 	MethodBAIPaga   PaymentMethod = "baipaga"
 	MethodCard      PaymentMethod = "card"
 	MethodPix       PaymentMethod = "pix"
-	// MethodBankTransfer é a transferência bancária: o comprador transfere para
-	// a conta de receção da Spolly com um descritivo único, e o pagamento fica
-	// pendente até 7 dias, até ser confirmado no extrato.
+	// MethodBankTransfer é a transferência bancária: o comprador transfere
+	// direto para a conta bancária do comerciante, com um descritivo único, e
+	// o pagamento fica pendente até 7 dias, até o comerciante o confirmar no
+	// painel (Payment.Settlement é SettlementMerchantAccount).
 	MethodBankTransfer PaymentMethod = "bank_transfer"
 	// MethodDirectDebit é o débito direto: o comprador autoriza um mandato no
 	// banco dele, e a cobrança apresenta-se contra o mandato.
@@ -129,6 +130,19 @@ const (
 	PlatformFeeExceedsNet = "exceeds_net"
 )
 
+// Settlement diz para onde foi o dinheiro de um pagamento.
+type Settlement string
+
+const (
+	// SettlementBalance: o dinheiro entrou no saldo do comerciante no Spolly
+	// Payments (todos os métodos menos a transferência bancária).
+	SettlementBalance Settlement = "balance"
+	// SettlementMerchantAccount: o dinheiro entrou direto na conta bancária do
+	// comerciante (a transferência bancária), que o confirma no painel; a taxa
+	// sai do saldo dele.
+	SettlementMerchantAccount Settlement = "merchant_account"
+)
+
 // Payment é o objeto de um pagamento nos eventos payment.succeeded e
 // payment.failed (o Data.Object do webhook.Event). Lê-se com
 // json.Unmarshal(evento.Data.Object, &p).
@@ -142,9 +156,14 @@ type Payment struct {
 	// Fee é a taxa do Spolly Payments.
 	Fee Money `json:"fee"`
 	// Net é o que fica ao comerciante: Amount menos Fee e menos a comissão
-	// da plataforma, quando a há.
-	Net    Money         `json:"net"`
-	Method PaymentMethod `json:"method"`
+	// da plataforma, quando a há. Com Settlement SettlementBalance, é o que
+	// entra no saldo; com SettlementMerchantAccount, o comerciante recebeu o
+	// Amount na conta dele e a Fee sai do saldo.
+	Net Money `json:"net"`
+	// Settlement diz para onde foi o dinheiro: SettlementBalance ou
+	// SettlementMerchantAccount.
+	Settlement Settlement    `json:"settlement"`
+	Method     PaymentMethod `json:"method"`
 	// FailureReason diz porque falhou, só nos falhados.
 	FailureReason string            `json:"failure_reason,omitempty"`
 	CreatedAt     time.Time         `json:"created_at"`
@@ -185,6 +204,11 @@ type SubscriptionPlan struct {
 	// Cycles é quantas vezes se cobra, no máximo 1000; nil é até alguém
 	// cancelar.
 	Cycles *int `json:"cycles,omitempty"`
+	// FirstCycleAmount é o valor do primeiro ciclo, quando é mais barato do
+	// que o Amount da sessão (um cupão que vale só no primeiro mês): o
+	// primeiro pagamento cobra-o, e as renovações cobram o Amount. Zero, todos
+	// os ciclos custam o Amount. Em AOA, múltiplo de 100.
+	FirstCycleAmount int64 `json:"first_cycle_amount,omitempty"`
 }
 
 // SessionSubscription é o campo subscription de uma sessão de subscrição ou
@@ -197,6 +221,9 @@ type SessionSubscription struct {
 	Cycles   *int    `json:"cycles"`
 	// Cycle é o ciclo que uma sessão de renovação paga; nil nas outras.
 	Cycle *int `json:"cycle"`
+	// FirstCycleAmount é o valor do primeiro ciclo, quando é mais barato do
+	// que o Amount, ou nil.
+	FirstCycleAmount *int64 `json:"first_cycle_amount"`
 }
 
 // Os estados de uma sessão.

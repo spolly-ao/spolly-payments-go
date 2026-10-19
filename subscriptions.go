@@ -43,9 +43,12 @@ type Subscription struct {
 	Object string `json:"object"`
 	// Status é um dos Subscription*.
 	Status string `json:"status"`
-	// Amount é o preço de cada ciclo.
-	Amount   Money  `json:"amount"`
-	Interval string `json:"interval"`
+	// Amount é o preço de cada ciclo; as renovações cobram-no sempre.
+	Amount Money `json:"amount"`
+	// FirstCycleAmount é o que o primeiro ciclo custou, quando foi mais
+	// barato do que Amount (um cupão que vale só no primeiro), ou nil.
+	FirstCycleAmount *Money `json:"first_cycle_amount"`
+	Interval         string `json:"interval"`
 	// Cycles são os ciclos contratados; nil renova até ser cancelada.
 	Cycles *int `json:"cycles"`
 	// Cycle é o ciclo em vigor. O primeiro é o 1.

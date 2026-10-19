@@ -32,6 +32,10 @@ const (
 	// 409
 	CodePaymentNotPaid         = "pagamento_nao_pago"
 	CodePaymentAlreadyRefunded = "pagamento_ja_estornado"
+	// CodePaidToMerchantAccount: o pagamento foi uma transferência bancária
+	// direta para a conta do comerciante; não se estorna pela API, a devolução
+	// faz-se dessa conta.
+	CodePaidToMerchantAccount = "pago_na_conta_do_comerciante"
 	// CodeSubscriptionEnded: a subscrição já terminou (cancelar, ou abrir a
 	// página do cliente).
 	CodeSubscriptionEnded = "subscricao_terminada"
@@ -45,7 +49,9 @@ const (
 	// que o comerciante autorizou.
 	CodePlatformFeeAboveMaximum = "comissao_acima_do_maximo"
 	// CodePlatformFeeInvalid: a comissão é zero, negativa, da própria
-	// plataforma, ou deixava o comerciante sem líquido.
+	// plataforma, deixava o comerciante sem líquido, ou vinha com a
+	// transferência bancária em PaymentMethods (que vai direta para a conta do
+	// comerciante).
 	CodePlatformFeeInvalid = "comissao_invalida"
 	// 500 e 503
 	CodeInternal    = "erro_interno"

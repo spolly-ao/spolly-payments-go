@@ -6,7 +6,7 @@ verificar a assinatura dos webhooks. Só a biblioteca padrão, Go 1.26 ou mais
 recente.
 
 ```bash
-go get github.com/spolly-ao/spolly-payments-go@v0.4.0
+go get github.com/spolly-ao/spolly-payments-go@v0.5.0
 ```
 
 O repositório é público: o `go` vai buscá-lo pelo proxy público, sem
@@ -28,7 +28,7 @@ credenciais nem variáveis especiais.
 | `spolly` | `WithIdempotencyKey(k)`, `NewIdempotencyKey()` | A `Idempotency-Key` de um `POST` |
 | `spolly` | `*Error` (`StatusCode`, `Code`, `Message`, `Fields`, `IdempotencyKey`), `ErrorCode(err)`, `Code*` | As recusas da API |
 | `spolly` | `ErrInvalidResponse`, `ErrNoKey` | Uma resposta que não se lê; chamar sem chave |
-| `spolly` | `Money`, `AOA`, `USD`, `EUR`, `Method*` (com `MethodBankTransfer` e `MethodDirectDebit`, só em AOA e só quando pedidos), `Mode*`, `Session*`, `Refund*`, `Subscription*`, `Renewal*`, `Kind*`, `Interval*` | Os tipos e os valores do contrato |
+| `spolly` | `Money`, `AOA`, `USD`, `EUR`, `Method*` (com `MethodBankTransfer` e `MethodDirectDebit`, só em AOA e só quando pedidos), `Mode*`, `Session*`, `Refund*`, `Subscription*`, `Renewal*`, `Settlement*` (para onde foi o dinheiro de um pagamento: o saldo, ou a conta bancária do comerciante na transferência), `Kind*`, `Interval*` | Os tipos e os valores do contrato |
 | `webhook` | `Verifier`, `Verify`, `ConstructEvent`, `(Verifier).ParseRequest`, `Sign` | A assinatura dos webhooks |
 | `webhook` | `*VerificationError`, `Err*`, `Event`, `Event*` | As recusas, o envelope e os tipos de evento |
 
@@ -112,6 +112,12 @@ link, err := cliente.CreateSubscriptionPortalLink(ctx, sub.ID) // mandar link.UR
 sub, err = cliente.CancelSubscription(ctx, sub.ID, nil)        // no fim do ciclo pago
 ```
 
+Um cupão que vale só no primeiro ciclo: `FirstCycleAmount` no plano. O primeiro
+pagamento cobra-o, e as renovações cobram o `Amount` (no cartão, o Stripe renova
+sozinho pelo preço cheio). Um cancelamento no fim do ciclo dá dois
+`subscription.cancelled`: o do pedido, com a subscrição ainda `active`, e o do
+fim, com `status` `cancelled`; corta-se o acesso pelo segundo.
+
 ## Comissão de plataforma
 
 Uma plataforma que vende em nome de um comerciante cria a sessão com a chave
@@ -131,6 +137,25 @@ sessao, err := hotel.CreateCheckoutSession(ctx, &spolly.CheckoutSessionParams{
 var p spolly.Payment
 _ = json.Unmarshal(evento.Data.Object, &p) // p.PlatformFee, p.Net
 ```
+
+## A transferência bancária vai para a conta do comerciante
+
+Com `spolly.MethodBankTransfer` (só em AOA, e só pedido por nome), o comprador
+transfere direto para a conta bancária do comerciante, que o confirma no painel.
+O `payment.succeeded` diz para onde foi o dinheiro:
+
+```go
+var p spolly.Payment
+_ = json.Unmarshal(evento.Data.Object, &p)
+if p.Settlement == spolly.SettlementMerchantAccount {
+	// O Amount entrou na conta bancária do comerciante; a Fee sai do saldo dele.
+}
+```
+
+Uma sessão com `PlatformFee` não pode pedir a transferência
+(`CodePlatformFeeInvalid`), e um pagamento por transferência não se estorna pela
+API (`CodePaidToMerchantAccount`, 409): a devolução faz-se da conta do
+comerciante.
 
 ## O que o cliente faz sozinho
 
