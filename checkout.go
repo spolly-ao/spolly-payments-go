@@ -176,6 +176,10 @@ type Payment struct {
 	// PlatformFeeSkipped diz porque uma comissão pedida não se aplicou (um
 	// dos PlatformFee*), ou vazio.
 	PlatformFeeSkipped string `json:"platform_fee_skipped,omitempty"`
+	// FeeOnTop é a parte do Amount que o comprador pagou por cima, quando o
+	// comerciante lhe passa a taxa (no painel, em Aplicações): é igual à Fee,
+	// e o Net é o valor da cobrança. nil quando a taxa sai do valor.
+	FeeOnTop *Money `json:"fee_on_top"`
 }
 
 // Os tipos de sessão. Chama-se kind, e não mode, porque o Mode é o modo da
@@ -268,6 +272,10 @@ type CheckoutSession struct {
 	Application *string `json:"application"`
 	// PlatformFee é a comissão da plataforma que a sessão pede, ou nil.
 	PlatformFee *PlatformFee `json:"platform_fee"`
+	// FeeOnTop diz que o comprador paga a taxa do Spolly Payments por cima do
+	// Amount: a escolha da aplicação da chave, ou a global do comerciante,
+	// congelada quando a sessão nasceu. O comerciante fica com o Amount.
+	FeeOnTop bool `json:"fee_on_top"`
 }
 
 func (s *CheckoutSession) valido() bool {
@@ -284,6 +292,10 @@ type SessionPayment struct {
 	ID     string        `json:"id"`
 	Status string        `json:"status"`
 	Method PaymentMethod `json:"method"`
+	// Amount é o que o comprador pagou; FeeOnTop, a parte dele que foi a
+	// taxa paga por cima, ou nil.
+	Amount   Money  `json:"amount"`
+	FeeOnTop *Money `json:"fee_on_top"`
 }
 
 // CreateCheckoutSession cria uma sessão (POST /v1/checkout/sessions) e
