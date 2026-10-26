@@ -109,6 +109,13 @@ type CheckoutSessionParams struct {
 	// e o Amount nunca passa o máximo dele. Numa sessão KindSubscription,
 	// repete-se em cada renovação. nil sem comissão.
 	PlatformFee *PlatformFee `json:"platform_fee,omitempty"`
+	// Coupon é o código (ou o cpn_...) de um cupão a aplicar já. Um que não
+	// se aplica é *Error com CodeCouponInvalid. Não vai com
+	// AllowPromotionCodes, nem com o FirstCycleAmount de uma subscrição.
+	Coupon string `json:"coupon,omitempty"`
+	// AllowPromotionCodes deixa o comprador escrever um código de desconto no
+	// checkout.
+	AllowPromotionCodes bool `json:"allow_promotion_codes,omitempty"`
 }
 
 // PlatformFee é a comissão de uma plataforma num pagamento: a plataforma que
@@ -182,6 +189,9 @@ type Payment struct {
 	// comerciante lhe passa a taxa (no painel, em Aplicações): é igual à Fee,
 	// e o Net é o valor da cobrança. nil quando a taxa sai do valor.
 	FeeOnTop *Money `json:"fee_on_top"`
+	// Discount é o cupão com que se pagou e quanto descontou, ou nil. O
+	// Amount é já o valor depois do desconto, e a Fee é sobre ele.
+	Discount *Discount `json:"discount"`
 }
 
 // Os tipos de sessão. Chama-se kind, e não mode, porque o Mode é o modo da
@@ -278,6 +288,13 @@ type CheckoutSession struct {
 	// Amount: a escolha da aplicação da chave, ou a global do comerciante,
 	// congelada quando a sessão nasceu. O comerciante fica com o Amount.
 	FeeOnTop bool `json:"fee_on_top"`
+	// Discount é o cupão aplicado e quanto desconta, ou nil. O Amount da
+	// sessão é sempre o preço antes dele: o checkout cobra Amount menos
+	// Discount.Amount. Numa sessão de renovação, é o desconto deste ciclo.
+	Discount *Discount `json:"discount"`
+	// AllowPromotionCodes diz que o comprador pode escrever um código de
+	// desconto no checkout.
+	AllowPromotionCodes bool `json:"allow_promotion_codes"`
 }
 
 func (s *CheckoutSession) valido() bool {

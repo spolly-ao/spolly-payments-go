@@ -48,7 +48,10 @@ type Subscription struct {
 	// FirstCycleAmount é o que o primeiro ciclo custou, quando foi mais
 	// barato do que Amount (um cupão que vale só no primeiro), ou nil.
 	FirstCycleAmount *Money `json:"first_cycle_amount"`
-	Interval         string `json:"interval"`
+	// Discount é o cupão da subscrição, ou nil: o desconto de cada ciclo que
+	// cobre, e quantos.
+	Discount *SubscriptionDiscount `json:"discount"`
+	Interval string                `json:"interval"`
 	// Cycles são os ciclos contratados; nil renova até ser cancelada.
 	Cycles *int `json:"cycles"`
 	// Cycle é o ciclo em vigor. O primeiro é o 1.

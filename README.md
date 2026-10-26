@@ -6,7 +6,7 @@ contas ligadas de uma plataforma, e verificar a assinatura dos webhooks. Só a b
 recente.
 
 ```bash
-go get github.com/spolly-ao/spolly-payments-go@v0.8.0
+go get github.com/spolly-ao/spolly-payments-go@v0.9.0
 ```
 
 O repositório é público: o `go` vai buscá-lo pelo proxy público, sem
@@ -25,6 +25,11 @@ credenciais nem variáveis especiais.
 | `spolly` | `(*Client).GetSubscription(ctx, id)` | `GET /v1/subscriptions/{id}` |
 | `spolly` | `(*Client).CancelSubscription(ctx, id, *CancelSubscriptionParams, ...RequestOption)` | `POST /v1/subscriptions/{id}/cancel` (no fim do ciclo, por omissão) |
 | `spolly` | `(*Client).CreateSubscriptionPortalLink(ctx, id, ...RequestOption)` | `POST /v1/subscriptions/{id}/portal`: o link de uso único da página do cliente |
+| `spolly` | `(*Client).CreateCoupon(ctx, *CouponParams, ...RequestOption)` | `POST /v1/coupons` |
+| `spolly` | `(*Client).ListCoupons(ctx, *ListCouponsParams)` | `GET /v1/coupons` (`limit`, `starting_after`, `code`) |
+| `spolly` | `(*Client).GetCoupon(ctx, id)` | `GET /v1/coupons/{id}` |
+| `spolly` | `(*Client).UpdateCoupon(ctx, id, *CouponUpdateParams)` | `PATCH /v1/coupons/{id}`: o nome, o limite, a data de fim, o ativo e os metadados |
+| `spolly` | `Coupon`, `CouponList`, `Coupon*` (as durações), `Discount`, `SessionCoupon`, `SubscriptionDiscount` | Os cupões, e o desconto na sessão, no pagamento e na subscrição |
 | `spolly` | `(*Client).WithAccount(mer_...)` | Uma cópia do cliente que pede em nome de uma conta ligada (cabeçalho `Spolly-Account`, `AccountHeader`) em todas as rotas de `/v1`, menos as `/v1/accounts` |
 | `spolly` | `(*Client).CreateAccount(ctx, *AccountParams, ...RequestOption)` | `POST /v1/accounts` |
 | `spolly` | `(*Client).ListAccounts(ctx, *ListAccountsParams)` | `GET /v1/accounts` (`limit`, `starting_after`, `reference`) |
@@ -129,6 +134,40 @@ pagamento cobra-o, e as renovações cobram o `Amount` (no cartão, o Stripe ren
 sozinho pelo preço cheio). Um cancelamento no fim do ciclo dá dois
 `subscription.cancelled`: o do pedido, com a subscrição ainda `active`, e o do
 fim, com `status` `cancelled`; corta-se o acesso pelo segundo.
+
+## Cupões
+
+Um cupão é de percentagem (`PercentOff`) ou de valor fixo (`AmountOff` com
+`Currency`, e só vale nessa moeda). Numa subscrição vale no primeiro ciclo
+(`CouponOnce`), nos primeiros N (`CouponRepeating` com `DurationCycles`) ou em
+todos (`CouponForever`). O desconto não muda depois de criado.
+
+```go
+cupao, err := cliente.CreateCoupon(ctx, &spolly.CouponParams{
+	Code: "BEMVINDO10", PercentOff: 10, Duration: spolly.CouponRepeating, DurationCycles: 3,
+	MaxRedemptions: 100,
+})
+
+// Aplicado já pela loja:
+sessao, err := cliente.CreateCheckoutSession(ctx, &spolly.CheckoutSessionParams{
+	Amount: 1500000, Currency: spolly.AOA, Description: "Plano mensal", Coupon: cupao.Code,
+})
+// Recusa: spolly.CodeCouponInvalid (422). sessao.Discount.Amount é quanto desconta,
+// e o Amount da sessão continua a ser o preço antes dele.
+
+// Ou escrito pelo comprador no checkout:
+sessao, err = cliente.CreateCheckoutSession(ctx, &spolly.CheckoutSessionParams{
+	Amount: 1500000, Currency: spolly.AOA, Description: "Vestido", AllowPromotionCodes: true,
+})
+
+// Desativar: deixa de se aplicar, e quem já o tem fica com ele.
+nao := false
+_, err = cliente.UpdateCoupon(ctx, cupao.ID, &spolly.CouponUpdateParams{Active: &nao})
+```
+
+O `Payment` do `payment.succeeded` traz o `Amount` já descontado, a `Fee` sobre
+ele e o `Discount`; a `Subscription` traz o `Discount` com os ciclos que cobre.
+Um cupão não vai com o `FirstCycleAmount` de um plano.
 
 ## Comissão de plataforma
 

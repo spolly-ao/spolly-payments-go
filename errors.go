@@ -49,6 +49,9 @@ const (
 	CodeAccountNotFound = "conta_nao_existe"
 	// CodePayoutNotFound: não há saque com este id nesta conta.
 	CodePayoutNotFound = "saque_nao_existe"
+	// CodeCouponNotFound: não há cupão com este id neste comerciante e neste
+	// modo.
+	CodeCouponNotFound = "cupao_nao_existe"
 	// 409
 	CodePaymentNotPaid         = "pagamento_nao_pago"
 	CodePaymentAlreadyRefunded = "pagamento_ja_estornado"
@@ -75,6 +78,8 @@ const (
 	CodeNegativeBalance = "saldo_negativo"
 	// CodeInsufficientBalance: o saque passa o saldo disponível.
 	CodeInsufficientBalance = "saldo_insuficiente"
+	// CodeCouponCodeRepeated: já há um cupão com este código, neste modo.
+	CodeCouponCodeRepeated = "codigo_repetido"
 	// 422
 	CodeInvalidData            = "dados_invalidos"
 	CodeIdempotencyReused      = "idempotencia_reutilizada"
@@ -89,6 +94,9 @@ const (
 	// transferência bancária em PaymentMethods (que vai direta para a conta do
 	// comerciante).
 	CodePlatformFeeInvalid = "comissao_invalida"
+	// CodeCouponInvalid: o Coupon da sessão não existe, está desativado,
+	// expirado ou esgotado, é de outra moeda, ou não desconta neste valor.
+	CodeCouponInvalid = "cupao_invalido"
 	// 500 e 503
 	CodeInternal    = "erro_interno"
 	CodeUnavailable = "indisponivel"
