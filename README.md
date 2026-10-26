@@ -6,7 +6,7 @@ verificar a assinatura dos webhooks. Só a biblioteca padrão, Go 1.26 ou mais
 recente.
 
 ```bash
-go get github.com/spolly-ao/spolly-payments-go@v0.6.0
+go get github.com/spolly-ao/spolly-payments-go@v0.7.0
 ```
 
 O repositório é público: o `go` vai buscá-lo pelo proxy público, sem
@@ -156,6 +156,24 @@ Uma sessão com `PlatformFee` não pode pedir a transferência
 (`CodePlatformFeeInvalid`), e um pagamento por transferência não se estorna pela
 API (`CodePaidToMerchantAccount`, 409): a devolução faz-se da conta do
 comerciante.
+
+## Um pagamento em análise
+
+O antifraude da Spolly pode reter um pagamento depois de confirmado: o
+`payment.succeeded` chega na mesma, mas o dinheiro fica no pendente até a
+equipa o libertar. Chegam mais dois eventos, com o mesmo `Payment` no objeto:
+
+```go
+switch evento.Type {
+case webhook.EventPaymentHeld:
+	// Retido: entrega a encomenda se quiseres, mas o dinheiro ainda não sai.
+case webhook.EventPaymentReleased:
+	// Libertado: segue para o disponível na libertação seguinte.
+}
+```
+
+Se a equipa confirmar a fraude, o pagamento é estornado ao comprador e chega o
+`refund.created`.
 
 ## O que o cliente faz sozinho
 

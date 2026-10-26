@@ -52,6 +52,8 @@ const MaxBodyBytes = 1 << 20
 const (
 	EventCheckoutSessionExpired = "checkout.session.expired"
 	EventPaymentFailed          = "payment.failed"
+	EventPaymentHeld            = "payment.held"
+	EventPaymentReleased        = "payment.released"
 	EventPaymentSucceeded       = "payment.succeeded"
 	EventPayoutFailed           = "payout.failed"
 	EventPayoutPaid             = "payout.paid"
