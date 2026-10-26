@@ -21,16 +21,21 @@ const (
 // PaymentMethod é um método de pagamento do checkout.
 type PaymentMethod string
 
-// Os métodos: Multicaixa Express, referência, BAI Paga, cartão, Pix (só em BRL),
-// transferência bancária e débito direto. Os dois últimos existem só em AOA e
-// só se oferecem quando a sessão os pede por nome em PaymentMethods: uma lista
-// vazia não os inclui.
+// Os métodos: Multicaixa Express, referência, BAI Paga, a app da PayPay, o
+// KWiK, cartão, Pix (só em BRL), transferência bancária e débito direto. Os
+// dois últimos existem só em AOA e só se oferecem quando a sessão os pede por
+// nome em PaymentMethods: uma lista vazia não os inclui.
 const (
 	MethodMCX       PaymentMethod = "mcx"
 	MethodReference PaymentMethod = "reference"
 	MethodBAIPaga   PaymentMethod = "baipaga"
-	MethodCard      PaymentMethod = "card"
-	MethodPix       PaymentMethod = "pix"
+	// MethodPayPay é a app da PayPay, e MethodKWiK o KWiK pela PayPay (o QR
+	// ou o código de nove dígitos, que a app de qualquer banco paga). Só em
+	// AOA.
+	MethodPayPay PaymentMethod = "paypay"
+	MethodKWiK   PaymentMethod = "kwik"
+	MethodCard   PaymentMethod = "card"
+	MethodPix    PaymentMethod = "pix"
 	// MethodBankTransfer é a transferência bancária: o comprador transfere
 	// direto para a conta bancária do comerciante, com um descritivo único, e
 	// o pagamento fica pendente até 7 dias, até o comerciante o confirmar no
