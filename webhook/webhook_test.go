@@ -200,3 +200,36 @@ func TestParseRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// Os eventos de uma conta ligada chegam à plataforma com account no
+// envelope; os do próprio comerciante não o têm.
+func TestOEventoDeUmaContaLigadaDizDeQueContaVem(t *testing.T) {
+	v := Verifier{Secrets: []string{segredo}, Now: relogio}
+	ligada := []byte(`{"id":"evt_01JA9X8Y8A","type":"payout.created","created_at":"2026-11-30T10:15:00Z","mode":"live",` +
+		`"merchant_id":"mer_01JA9BILHETEIRA","application":"app_01JA9BILHETES","account":"mer_01JA9VENDEDOR","api_version":"2026-10-16",` +
+		`"data":{"object":{"id":"po_01JA9P","object":"payout","amount":{"amount":2500000,"currency":"AOA"},"status":"pending","created_at":"2026-11-30T10:15:00Z"}}}`)
+	e, err := v.ConstructEvent(ligada, Sign(agora, ligada, segredo))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if e.Account != "mer_01JA9VENDEDOR" || e.MerchantID != "mer_01JA9BILHETEIRA" || e.Type != EventPayoutCreated || *e.Application != "app_01JA9BILHETES" {
+		t.Fatalf("%+v", e)
+	}
+	e, err = v.ConstructEvent(corpo, Sign(agora, corpo, segredo))
+	if err != nil || e.Account != "" {
+		t.Fatalf("%+v %v", e, err)
+	}
+}
+
+// Os tipos de evento são os do enum de contratos/eventos/envelope.schema.json.
+func TestOsTiposDeEventoSaoOsDoContrato(t *testing.T) {
+	contrato := []string{"account.updated", "balance.available", "checkout.session.expired", "payment.failed", "payment.held",
+		"payment.released", "payment.succeeded", "payout.created", "payout.failed", "payout.paid", "payout.processing",
+		"refund.created", "subscription.cancelled", "subscription.created", "subscription.past_due", "subscription.renewed"}
+	sdk := []string{EventAccountUpdated, EventBalanceAvailable, EventCheckoutSessionExpired, EventPaymentFailed, EventPaymentHeld,
+		EventPaymentReleased, EventPaymentSucceeded, EventPayoutCreated, EventPayoutFailed, EventPayoutPaid, EventPayoutProcessing,
+		EventRefundCreated, EventSubscriptionCancelled, EventSubscriptionCreated, EventSubscriptionPastDue, EventSubscriptionRenewed}
+	if strings.Join(contrato, ",") != strings.Join(sdk, ",") {
+		t.Fatalf("\n%v\n%v", contrato, sdk)
+	}
+}

@@ -16,6 +16,10 @@ const (
 	CodeInvalidRequest     = "pedido_invalido"
 	CodeIdempotencyMissing = "idempotencia_em_falta"
 	CodeIdempotencyInvalid = "idempotencia_invalida"
+	// CodeAccountHeaderNotAllowed: o cabeçalho Spolly-Account numa rota das
+	// contas ligadas, onde a conta já vai no caminho. O cliente nunca o manda
+	// lá; só aparece a quem monte o pedido à mão.
+	CodeAccountHeaderNotAllowed = "spolly_account_nao_serve_aqui"
 	// 401
 	CodeNoKey      = "sem_chave"
 	CodeInvalidKey = "chave_invalida"
@@ -23,12 +27,28 @@ const (
 	// CodePlatformNotAuthorized: a sessão pede PlatformFee, e o comerciante
 	// da chave não autorizou essa plataforma.
 	CodePlatformNotAuthorized = "plataforma_nao_autorizada"
+	// CodeConnectedAccountsNotEnabled: a conta da chave não tem as contas
+	// ligadas habilitadas pela equipa.
+	CodeConnectedAccountsNotEnabled = "contas_ligadas_nao_habilitadas"
+	// CodeAccountOtherMode: a conta de WithAccount foi criada com uma chave
+	// do outro modo (teste ou produção).
+	CodeAccountOtherMode = "conta_de_outro_modo"
+	// CodeAccountNotVerified: em produção, uma escrita em nome de uma conta
+	// ligada por verificar, ou um saque dela (409 neste caso).
+	CodeAccountNotVerified = "conta_por_verificar"
+	// CodePayoutRefused: o saque não pode ser feito.
+	CodePayoutRefused = "saque_recusado"
 	// 404
 	CodeSessionNotFound = "sessao_nao_existe"
 	CodePaymentNotFound = "pagamento_nao_existe"
 	CodeRefundNotFound  = "estorno_nao_existe"
 	// CodeSubscriptionNotFound: não há subscrição com este id para esta chave.
 	CodeSubscriptionNotFound = "subscricao_nao_existe"
+	// CodeAccountNotFound: a conta ligada não existe nesta plataforma, neste
+	// modo (no caminho, ou em WithAccount).
+	CodeAccountNotFound = "conta_nao_existe"
+	// CodePayoutNotFound: não há saque com este id nesta conta.
+	CodePayoutNotFound = "saque_nao_existe"
 	// 409
 	CodePaymentNotPaid         = "pagamento_nao_pago"
 	CodePaymentAlreadyRefunded = "pagamento_ja_estornado"
@@ -39,6 +59,22 @@ const (
 	// CodeSubscriptionEnded: a subscrição já terminou (cancelar, ou abrir a
 	// página do cliente).
 	CodeSubscriptionEnded = "subscricao_terminada"
+	// CodeReferenceRepeated: já há uma conta ligada desta plataforma, neste
+	// modo, com esta Reference.
+	CodeReferenceRepeated = "referencia_repetida"
+	// CodeVerificationLocked: a verificação da conta ligada, em análise ou
+	// aprovada, não deixa fazer a alteração (o nome legal, o NIF, um
+	// documento, a conta bancária).
+	CodeVerificationLocked = "verificacao_nao_deixa"
+	// CodeTooManyDocuments: a conta ligada já tem o máximo de documentos.
+	CodeTooManyDocuments = "documentos_demais"
+	// CodeBankAccountNotVerified: a conta bancária da conta ligada está por
+	// verificar, e não há saques até lá.
+	CodeBankAccountNotVerified = "conta_bancaria_por_verificar"
+	// CodeNegativeBalance: o saldo da conta é negativo, e não se saca.
+	CodeNegativeBalance = "saldo_negativo"
+	// CodeInsufficientBalance: o saque passa o saldo disponível.
+	CodeInsufficientBalance = "saldo_insuficiente"
 	// 422
 	CodeInvalidData            = "dados_invalidos"
 	CodeIdempotencyReused      = "idempotencia_reutilizada"

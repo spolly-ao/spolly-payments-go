@@ -1,6 +1,7 @@
 // Package spolly é o cliente em Go da API do Spolly Payments: criar e ler
-// sessões de checkout, estornar, e confirmar a conta da chave. A verificação
-// da assinatura dos webhooks está no subpacote webhook.
+// sessões de checkout, estornar, confirmar a conta da chave, e gerir as contas
+// ligadas de uma plataforma (CreateAccount, WithAccount). A verificação da
+// assinatura dos webhooks está no subpacote webhook.
 //
 //	cliente := spolly.NewClient(os.Getenv("SPOLLY_SECRET_KEY"))
 //	sessao, err := cliente.CreateCheckoutSession(ctx, &spolly.CheckoutSessionParams{
@@ -54,7 +55,7 @@ import (
 )
 
 // Version é a versão deste SDK, que vai no User-Agent.
-const Version = "0.7.0"
+const Version = "0.8.0"
 
 // DefaultBaseURL é a API de produção. As chaves sk_test_ também a usam: o modo
 // é o da chave, e não o do endereço.
@@ -94,6 +95,8 @@ type Client struct {
 	timeout    time.Duration
 	maxRetries int
 	userAgent  string
+	// account é a conta ligada em nome de quem se pede (WithAccount), ou "".
+	account string
 	// dormir e aleatorio existem para os testes não esperarem de verdade.
 	dormir    func(context.Context, time.Duration) error
 	aleatorio func(int64) int64
@@ -161,6 +164,24 @@ func NewClient(secretKey string, opts ...Option) *Client {
 	return c
 }
 
+// AccountHeader é o cabeçalho com que uma plataforma pede em nome de uma
+// conta ligada dela (WithAccount).
+const AccountHeader = "Spolly-Account"
+
+// WithAccount devolve uma cópia do cliente que pede em nome de uma conta
+// ligada da plataforma (mer_...), com o cabeçalho Spolly-Account em cada
+// pedido de /v1: a sessão, o pagamento, o estorno e a subscrição passam a ser
+// da conta, e a plataforma fica com a comissão (PlatformFee, com Platform
+// vazio). O cliente original não muda, e as duas cópias partilham o
+// *http.Client. As rotas das contas ligadas (CreateAccount, GetAccountBalance,
+// CreateAccountPayout, ...) nunca levam o cabeçalho, porque a conta já vai no
+// caminho. Um id vazio devolve uma cópia que pede em nome da própria chave.
+func (c *Client) WithAccount(accountID string) *Client {
+	copia := *c
+	copia.account = accountID
+	return &copia
+}
+
 // RequestOption muda uma chamada só.
 type RequestOption func(*opcoesDoPedido)
 
@@ -196,20 +217,29 @@ var ErrNoKey = errors.New("spolly: falta a chave secreta (sk_test_... ou sk_live
 // objeto é o que todas as respostas lidas têm de ter.
 type objeto interface{ valido() bool }
 
-// pedir faz o pedido, com as retentativas, e lê a resposta para dst.
+// pedir faz o pedido com um corpo em JSON, com as retentativas, e lê a
+// resposta para dst.
 func (c *Client) pedir(ctx context.Context, metodo, caminho string, corpo any, dst objeto, opts []RequestOption) error {
+	var dados []byte
+	tipo := ""
+	if corpo != nil {
+		// Os parâmetros são tipos deste pacote, só com texto, números, listas
+		// e mapas de texto: escrevê-los em JSON não falha.
+		dados, _ = json.Marshal(corpo)
+		tipo = "application/json"
+	}
+	return c.enviar(ctx, metodo, caminho, dados, tipo, dst, opts)
+}
+
+// enviar faz o pedido com o corpo já escrito (dados, do tipo dado), com as
+// retentativas, e lê a resposta para dst.
+func (c *Client) enviar(ctx context.Context, metodo, caminho string, dados []byte, tipo string, dst objeto, opts []RequestOption) error {
 	if c.key == "" {
 		return ErrNoKey
 	}
 	var o opcoesDoPedido
 	for _, f := range opts {
 		f(&o)
-	}
-	var dados []byte
-	if corpo != nil {
-		// Os parâmetros são tipos deste pacote, só com texto, números, listas
-		// e mapas de texto: escrevê-los em JSON não falha.
-		dados, _ = json.Marshal(corpo)
 	}
 	if metodo == http.MethodPost && o.chave == "" {
 		o.chave = NewIdempotencyKey()
@@ -222,11 +252,16 @@ func (c *Client) pedir(ctx context.Context, metodo, caminho string, corpo any, d
 	base.Header.Set("Authorization", "Bearer "+c.key)
 	base.Header.Set("Accept", "application/json")
 	base.Header.Set("User-Agent", c.userAgent)
-	if dados != nil {
-		base.Header.Set("Content-Type", "application/json")
+	if tipo != "" {
+		base.Header.Set("Content-Type", tipo)
 	}
 	if o.chave != "" {
 		base.Header.Set(IdempotencyKeyHeader, o.chave)
+	}
+	// As rotas das contas ligadas são da plataforma, e a conta vai no
+	// caminho: com o cabeçalho, a API recusa-as.
+	if c.account != "" && !daPlataforma(caminho) {
+		base.Header.Set(AccountHeader, c.account)
 	}
 
 	for tentativa := 0; ; tentativa++ {
@@ -306,6 +341,12 @@ func dormir(ctx context.Context, d time.Duration) error {
 	case <-t.C:
 		return nil
 	}
+}
+
+// daPlataforma diz se o caminho é de uma rota das contas ligadas, que nunca
+// leva o cabeçalho Spolly-Account.
+func daPlataforma(caminho string) bool {
+	return caminho == "/v1/accounts" || strings.HasPrefix(caminho, "/v1/accounts/") || strings.HasPrefix(caminho, "/v1/accounts?")
 }
 
 // caminhoCom junta um identificador ao caminho, escapado.

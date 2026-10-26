@@ -1,12 +1,12 @@
 # spolly-payments-go
 
 O SDK em Go do [Spolly Payments](https://github.com/spolly-ao/spolly-payments):
-criar e ler sessões de checkout, estornar, confirmar a conta da chave, e
-verificar a assinatura dos webhooks. Só a biblioteca padrão, Go 1.26 ou mais
+criar e ler sessões de checkout, estornar, confirmar a conta da chave, gerir as
+contas ligadas de uma plataforma, e verificar a assinatura dos webhooks. Só a biblioteca padrão, Go 1.26 ou mais
 recente.
 
 ```bash
-go get github.com/spolly-ao/spolly-payments-go@v0.7.0
+go get github.com/spolly-ao/spolly-payments-go@v0.8.0
 ```
 
 O repositório é público: o `go` vai buscá-lo pelo proxy público, sem
@@ -25,12 +25,24 @@ credenciais nem variáveis especiais.
 | `spolly` | `(*Client).GetSubscription(ctx, id)` | `GET /v1/subscriptions/{id}` |
 | `spolly` | `(*Client).CancelSubscription(ctx, id, *CancelSubscriptionParams, ...RequestOption)` | `POST /v1/subscriptions/{id}/cancel` (no fim do ciclo, por omissão) |
 | `spolly` | `(*Client).CreateSubscriptionPortalLink(ctx, id, ...RequestOption)` | `POST /v1/subscriptions/{id}/portal`: o link de uso único da página do cliente |
+| `spolly` | `(*Client).WithAccount(mer_...)` | Uma cópia do cliente que pede em nome de uma conta ligada (cabeçalho `Spolly-Account`, `AccountHeader`) em todas as rotas de `/v1`, menos as `/v1/accounts` |
+| `spolly` | `(*Client).CreateAccount(ctx, *AccountParams, ...RequestOption)` | `POST /v1/accounts` |
+| `spolly` | `(*Client).ListAccounts(ctx, *ListAccountsParams)` | `GET /v1/accounts` (`limit`, `starting_after`, `reference`) |
+| `spolly` | `(*Client).GetConnectedAccount(ctx, id)` | `GET /v1/accounts/{id}` |
+| `spolly` | `(*Client).UpdateAccount(ctx, id, *AccountParams)` | `PATCH /v1/accounts/{id}` |
+| `spolly` | `(*Client).UploadAccountDocument(ctx, id, *AccountDocumentParams, ...RequestOption)` | `POST /v1/accounts/{id}/documents` (multipart, `type` e `file`) |
+| `spolly` | `(*Client).SetAccountBankAccount(ctx, id, *BankAccountParams)` | `PUT /v1/accounts/{id}/bank_account` |
+| `spolly` | `(*Client).GetAccountBalance(ctx, id)` | `GET /v1/accounts/{id}/balance` |
+| `spolly` | `(*Client).CreateAccountPayout(ctx, id, *PayoutParams, ...RequestOption)` | `POST /v1/accounts/{id}/payouts` |
+| `spolly` | `(*Client).ListAccountPayouts(ctx, id)` | `GET /v1/accounts/{id}/payouts` |
+| `spolly` | `(*Client).GetAccountPayout(ctx, id, payoutID)` | `GET /v1/accounts/{id}/payouts/{payout_id}` |
+| `spolly` | `ConnectedAccount`, `AccountVerification`, `AccountBankAccount`, `AccountDocument`, `AccountList`, `Balance`, `Payout`, `PayoutList`, `Verification*`, `Missing*`, `Document*`, `BankAccount*`, `Payout*`, `MaxDocumentSize`, `ErrInvalidDocument` | As contas ligadas, o saldo e os saques |
 | `spolly` | `WithIdempotencyKey(k)`, `NewIdempotencyKey()` | A `Idempotency-Key` de um `POST` |
 | `spolly` | `*Error` (`StatusCode`, `Code`, `Message`, `Fields`, `IdempotencyKey`), `ErrorCode(err)`, `Code*` | As recusas da API |
 | `spolly` | `ErrInvalidResponse`, `ErrNoKey` | Uma resposta que não se lê; chamar sem chave |
 | `spolly` | `Money`, `AOA`, `USD`, `EUR`, `Method*` (com `MethodBankTransfer` e `MethodDirectDebit`, só em AOA e só quando pedidos), `Mode*`, `Session*`, `Refund*`, `Subscription*`, `Renewal*`, `Settlement*` (para onde foi o dinheiro de um pagamento: o saldo, ou a conta bancária do comerciante na transferência), `Kind*`, `Interval*` | Os tipos e os valores do contrato |
 | `webhook` | `Verifier`, `Verify`, `ConstructEvent`, `(Verifier).ParseRequest`, `Sign` | A assinatura dos webhooks |
-| `webhook` | `*VerificationError`, `Err*`, `Event`, `Event*` | As recusas, o envelope e os tipos de evento |
+| `webhook` | `*VerificationError`, `Err*`, `Event` (com `Account` nos eventos de uma conta ligada), `Event*` | As recusas, o envelope e os tipos de evento |
 
 ## Início rápido
 
@@ -174,6 +186,62 @@ case webhook.EventPaymentReleased:
 
 Se a equipa confirmar a fraude, o pagamento é estornado ao comprador e chega o
 `refund.created`.
+
+## Contas ligadas
+
+Uma plataforma habilitada pela equipa do Spolly Payments cria e gere pela API os
+vendedores que vendem por ela, e o vendedor nunca fala com o Spolly Payments.
+Sem a habilitação, estas operações dão `spolly.CodeConnectedAccountsNotEnabled`
+(403).
+
+```go
+plataforma := spolly.NewClient(os.Getenv("SPOLLY_SECRET_KEY"))
+
+// 1. Criar o vendedor, com a referência dele do lado da plataforma.
+conta, err := plataforma.CreateAccount(ctx, &spolly.AccountParams{
+	Name: "Kizomba Eventos", LegalName: "Joana Manuel", Reference: "vendedor_481",
+})
+
+// 2. A verificação: o documento de identificação, o comprovativo do IBAN, e a
+// conta bancária. Com tudo entregue, segue sozinha para análise (em teste,
+// aprova-se sozinha). conta.Verification.Missing diz o que falta.
+bi, _ := os.Open("bi.pdf")
+_, err = plataforma.UploadAccountDocument(ctx, conta.ID, &spolly.AccountDocumentParams{
+	Type: spolly.DocumentIdentity, FileName: "bi.pdf", Content: bi,
+})
+iban, _ := os.Open("iban.pdf")
+comprovativo, err := plataforma.UploadAccountDocument(ctx, conta.ID, &spolly.AccountDocumentParams{
+	Type: spolly.DocumentBankAccountProof, FileName: "iban.pdf", Content: iban,
+})
+conta, err = plataforma.SetAccountBankAccount(ctx, conta.ID, &spolly.BankAccountParams{
+	IBAN: "AO06004000010123456789012", Holder: "Joana Manuel", ProofDocument: comprovativo.ID,
+})
+
+// 3. Cobrar em nome do vendedor: a cópia manda Spolly-Account em cada pedido.
+// Com Platform vazio, a comissão é da plataforma.
+vendedor := plataforma.WithAccount(conta.ID)
+sessao, err := vendedor.CreateCheckoutSession(ctx, &spolly.CheckoutSessionParams{
+	Amount: 1500000, Currency: spolly.AOA, Description: "Bilhete",
+	PlatformFee: &spolly.PlatformFee{Amount: 150000},
+})
+
+// 4. O saldo (com sinal: pode ser negativo) e os saques.
+saldo, err := plataforma.GetAccountBalance(ctx, conta.ID)
+saque, err := plataforma.CreateAccountPayout(ctx, conta.ID, &spolly.PayoutParams{Amount: 2500000},
+	spolly.WithIdempotencyKey("saq_9921"))
+```
+
+- `GetAccount` continua a ser a conta da chave (`GET /v1/conta`); a conta ligada
+  lê-se com `GetConnectedAccount`, e o tipo dela é `ConnectedAccount`.
+- As rotas `/v1/accounts` nunca levam o `Spolly-Account`, mesmo chamadas a partir
+  da cópia de `WithAccount`: a conta vai no caminho.
+- Os eventos da conta chegam aos webhooks da plataforma com `evento.Account`
+  preenchido (`account.updated`, `balance.available`, `payout.created`,
+  `payout.processing`, `payout.paid`, `payout.failed`, e os de pagamento das
+  sessões feitas em nome dela). Vazio, o evento é da própria plataforma.
+- Um saque: `PayoutPending` (pedido), `PayoutProcessing` (aprovado),
+  `PayoutPaid` ou `PayoutFailed` (o valor volta ao disponível). Nunca mais do
+  que o disponível (`CodeInsufficientBalance`).
 
 ## O que o cliente faz sozinho
 

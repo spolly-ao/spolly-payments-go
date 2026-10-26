@@ -50,18 +50,28 @@ const MaxBodyBytes = 1 << 20
 
 // Os tipos de evento (contratos/eventos/envelope.schema.json).
 const (
+	// EventAccountUpdated: uma conta ligada mudou (a verificação, a conta
+	// bancária, os dados); o objeto é a conta.
+	EventAccountUpdated = "account.updated"
+	// EventBalanceAvailable: entrou dinheiro no saldo disponível de uma conta
+	// ligada; o objeto é o saldo.
+	EventBalanceAvailable       = "balance.available"
 	EventCheckoutSessionExpired = "checkout.session.expired"
 	EventPaymentFailed          = "payment.failed"
 	EventPaymentHeld            = "payment.held"
 	EventPaymentReleased        = "payment.released"
 	EventPaymentSucceeded       = "payment.succeeded"
-	EventPayoutFailed           = "payout.failed"
-	EventPayoutPaid             = "payout.paid"
-	EventRefundCreated          = "refund.created"
-	EventSubscriptionCancelled  = "subscription.cancelled"
-	EventSubscriptionCreated    = "subscription.created"
-	EventSubscriptionPastDue    = "subscription.past_due"
-	EventSubscriptionRenewed    = "subscription.renewed"
+	// EventPayoutCreated: um saque foi pedido.
+	EventPayoutCreated = "payout.created"
+	// EventPayoutProcessing: um saque foi aprovado, e espera a transferência.
+	EventPayoutProcessing      = "payout.processing"
+	EventPayoutFailed          = "payout.failed"
+	EventPayoutPaid            = "payout.paid"
+	EventRefundCreated         = "refund.created"
+	EventSubscriptionCancelled = "subscription.cancelled"
+	EventSubscriptionCreated   = "subscription.created"
+	EventSubscriptionPastDue   = "subscription.past_due"
+	EventSubscriptionRenewed   = "subscription.renewed"
 )
 
 // As razões de uma recusa. Comparam-se com errors.Is; o erro devolvido é um
@@ -117,13 +127,18 @@ type Event struct {
 	// Application é a aplicação do comerciante de onde o evento vem (a da
 	// chave de API ou do link que criou a sessão), ou nil. O Spolly Payments
 	// só entrega um evento aos endpoints da mesma aplicação.
-	Application *string   `json:"application"`
-	APIVersion  string    `json:"api_version"`
-	Data        EventData `json:"data"`
+	Application *string `json:"application"`
+	// Account é a conta ligada de onde o evento vem (mer_...), nos eventos
+	// que chegam a uma plataforma por uma conta dela; MerchantID é então a
+	// plataforma. Vazio quando o evento é do próprio comerciante.
+	Account    string    `json:"account,omitempty"`
+	APIVersion string    `json:"api_version"`
+	Data       EventData `json:"data"`
 }
 
 // EventData leva o objeto do evento, em bruto: lê-se para o tipo certo pelo
-// Event.Type (um pagamento, um estorno, um saque, uma subscrição).
+// Event.Type (um pagamento, um estorno, um saque, uma subscrição, uma conta
+// ligada, um saldo).
 type EventData struct {
 	Object json.RawMessage `json:"object"`
 }

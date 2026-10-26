@@ -115,7 +115,9 @@ type CheckoutSessionParams struct {
 // a recebe (o identificador de comerciante dela, mer_...) e o valor, em
 // unidades menores da moeda da sessão (em AOA, múltiplo de 100).
 type PlatformFee struct {
-	Platform string `json:"platform"`
+	// Platform é o mer_ da plataforma. Vazio só num cliente de WithAccount:
+	// aí a plataforma é a da chave (contas ligadas).
+	Platform string `json:"platform,omitempty"`
 	Amount   int64  `json:"amount"`
 }
 

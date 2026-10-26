@@ -102,3 +102,25 @@ func ExampleConstructEvent() {
 	fmt.Println(e.ID, e.Type, e.Mode, err)
 	// Output: evt_1 refund.created test <nil>
 }
+
+// Uma plataforma recebe os eventos das contas ligadas dela nos seus
+// webhooks: Account diz de que conta vem cada um, e fica vazio nos eventos
+// da própria plataforma.
+func ExampleEvent_Account() {
+	segredo := "whsec_9mLw2TcQe4XbN7aVfKp3Rz"
+	corpo := []byte(`{"id":"evt_2","type":"payout.paid","created_at":"2026-11-30T10:15:00Z","mode":"live","merchant_id":"mer_01JA9BILHETEIRA",` +
+		`"application":"app_01JA9BILHETES","account":"mer_01JA9VENDEDOR","api_version":"2026-10-16",` +
+		`"data":{"object":{"id":"po_01JA9P","object":"payout","amount":{"amount":2500000,"currency":"AOA"},"status":"paid","created_at":"2026-11-30T10:15:00Z"}}}`)
+	evento, err := webhook.ConstructEvent(corpo, webhook.Sign(time.Now(), corpo, segredo), segredo)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	switch {
+	case evento.Account != "" && evento.Type == webhook.EventPayoutPaid:
+		fmt.Println("saque pago ao vendedor", evento.Account)
+	case evento.Account == "":
+		fmt.Println("evento da própria plataforma")
+	}
+	// Output: saque pago ao vendedor mer_01JA9VENDEDOR
+}
