@@ -6,7 +6,7 @@ contas ligadas de uma plataforma, e verificar a assinatura dos webhooks. Só a b
 recente.
 
 ```bash
-go get github.com/spolly-ao/spolly-payments-go@v0.9.0
+go get github.com/spolly-ao/spolly-payments-go@v0.10.0
 ```
 
 O repositório é público: o `go` vai buscá-lo pelo proxy público, sem
