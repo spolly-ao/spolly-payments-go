@@ -180,6 +180,18 @@ func TestEsgotarAsRetentativasDevolveOUltimoErro(t *testing.T) {
 	}
 }
 
+func TestADicaEODocURLFicamNoErro(t *testing.T) {
+	c, _, _ := novoCliente(t, sempre(400, `{"erro":"idempotencia_em_falta","mensagem":"Falta a chave.","dica":"Acrescenta o cabeçalho Idempotency-Key.","doc_url":"https://payments.spolly.ao/docs/erros#idempotencia_em_falta"}`))
+	_, err := c.CreateCheckoutSession(context.Background(), &CheckoutSessionParams{})
+	var e *Error
+	if !errors.As(err, &e) || e.Hint != "Acrescenta o cabeçalho Idempotency-Key." || e.DocURL != "https://payments.spolly.ao/docs/erros#idempotencia_em_falta" {
+		t.Fatal(err)
+	}
+	if err.Error() != "spolly: 400 idempotencia_em_falta: Falta a chave. Dica: Acrescenta o cabeçalho Idempotency-Key. (https://payments.spolly.ao/docs/erros#idempotencia_em_falta)" {
+		t.Fatal(err.Error())
+	}
+}
+
 func TestOs4xxNaoSeRepetem(t *testing.T) {
 	c, s, _ := novoCliente(t, sempre(422, `{"erro":"dados_invalidos","mensagem":"Há campos por corrigir.","campos":{"currency":"Falta a moeda.","amount":"Falta o valor."}}`))
 	_, err := c.CreateCheckoutSession(context.Background(), &CheckoutSessionParams{})

@@ -43,7 +43,7 @@ credenciais nem variáveis especiais.
 | `spolly` | `(*Client).GetAccountPayout(ctx, id, payoutID)` | `GET /v1/accounts/{id}/payouts/{payout_id}` |
 | `spolly` | `ConnectedAccount`, `AccountVerification`, `AccountBankAccount`, `AccountDocument`, `AccountList`, `Balance`, `Payout`, `PayoutList`, `Verification*`, `Missing*`, `Document*`, `BankAccount*`, `Payout*`, `MaxDocumentSize`, `ErrInvalidDocument` | As contas ligadas, o saldo e os saques |
 | `spolly` | `WithIdempotencyKey(k)`, `NewIdempotencyKey()` | A `Idempotency-Key` de um `POST` |
-| `spolly` | `*Error` (`StatusCode`, `Code`, `Message`, `Fields`, `IdempotencyKey`), `ErrorCode(err)`, `Code*` | As recusas da API |
+| `spolly` | `*Error` (`StatusCode`, `Code`, `Message`, `Fields`, `IdempotencyKey`, `Hint`, `DocURL`; a dica e o endereço vão também no `Error()`), `ErrorCode(err)`, `Code*` | As recusas da API |
 | `spolly` | `ErrInvalidResponse`, `ErrNoKey` | Uma resposta que não se lê; chamar sem chave |
 | `spolly` | `Money`, `AOA`, `USD`, `EUR`, `Method*` (com `MethodBankTransfer` e `MethodDirectDebit`, só em AOA e só quando pedidos), `Mode*`, `Session*`, `Refund*`, `Subscription*`, `Renewal*`, `Settlement*` (para onde foi o dinheiro de um pagamento: o saldo, ou a conta bancária do comerciante na transferência), `Kind*`, `Interval*` | Os tipos e os valores do contrato |
 | `webhook` | `Verifier`, `Verify`, `ConstructEvent`, `(Verifier).ParseRequest`, `Sign` | A assinatura dos webhooks |

@@ -120,6 +120,12 @@ type Error struct {
 	// IdempotencyKey é a chave com que o POST foi feito; repetir com ela é
 	// seguro.
 	IdempotencyKey string
+	// Hint é o que mudar no pedido para ele passar, em português (vazio se a
+	// API não o disse).
+	Hint string
+	// DocURL é o endereço da documentação deste código (vazio se a API não o
+	// disse).
+	DocURL string
 }
 
 func (e *Error) Error() string {
@@ -127,6 +133,14 @@ func (e *Error) Error() string {
 	fmt.Fprintf(&b, "spolly: %d %s: %s", e.StatusCode, e.Code, e.Message)
 	for _, k := range slices.Sorted(maps.Keys(e.Fields)) {
 		fmt.Fprintf(&b, "; %s: %s", k, e.Fields[k])
+	}
+	// A dica e o endereço vão também no texto, para aparecerem no registo e no
+	// terminal, que é onde quem integra (e o assistente dele) os lê.
+	if e.Hint != "" {
+		fmt.Fprintf(&b, " Dica: %s", e.Hint)
+	}
+	if e.DocURL != "" {
+		fmt.Fprintf(&b, " (%s)", e.DocURL)
 	}
 	return b.String()
 }
@@ -158,6 +172,8 @@ func lerErro(estado int, corpo []byte, chave string) error {
 		Erro     string            `json:"erro"`
 		Mensagem string            `json:"mensagem"`
 		Campos   map[string]string `json:"campos"`
+		Dica     string            `json:"dica"`
+		DocURL   string            `json:"doc_url"`
 	}
 	if err := json.Unmarshal(corpo, &c); err != nil || c.Erro == "" {
 		resumo := strings.TrimSpace(string(corpo))
@@ -167,5 +183,5 @@ func lerErro(estado int, corpo []byte, chave string) error {
 		return &Error{StatusCode: estado, Code: CodeUnreadableError,
 			Message: fmt.Sprintf("a API respondeu %d com um corpo que não é um erro dela: %q", estado, resumo), IdempotencyKey: chave}
 	}
-	return &Error{StatusCode: estado, Code: c.Erro, Message: c.Mensagem, Fields: c.Campos, IdempotencyKey: chave}
+	return &Error{StatusCode: estado, Code: c.Erro, Message: c.Mensagem, Fields: c.Campos, IdempotencyKey: chave, Hint: c.Dica, DocURL: c.DocURL}
 }
