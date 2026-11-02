@@ -18,7 +18,7 @@
 //     WithIdempotencyKey, o cliente gera um (UUID v4) por chamada, e usa o
 //     mesmo em todas as retentativas dessa chamada: uma rede que cai depois de
 //     a API gravar não cria a mesma sessão duas vezes. Para ser idempotente
-//     entre chamadas (o mesmo pedido da loja, repetido depois de o processo
+//     entre chamadas (o mesmo pedido do teu sistema, repetido depois de o processo
 //     reiniciar), passa-se uma chave própria, por exemplo o número do pedido.
 //   - Retentativas: com falha de rede, 429, 500, 502, 503 ou 504, volta a
 //     tentar até MaxRetries vezes (2 por omissão), com espera exponencial e

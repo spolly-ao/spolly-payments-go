@@ -148,7 +148,7 @@ cupao, err := cliente.CreateCoupon(ctx, &spolly.CouponParams{
 	MaxRedemptions: 100,
 })
 
-// Aplicado já pela loja:
+// Aplicado já pelo teu produto:
 sessao, err := cliente.CreateCheckoutSession(ctx, &spolly.CheckoutSessionParams{
 	Amount: 1500000, Currency: spolly.AOA, Description: "Plano mensal", Coupon: cupao.Code,
 })
@@ -287,7 +287,7 @@ saque, err := plataforma.CreateAccountPayout(ctx, conta.ID, &spolly.PayoutParams
 - **Idempotência.** Todos os `POST` levam `Idempotency-Key`. Sem
   `WithIdempotencyKey`, gera-se um UUID v4 por chamada, o mesmo em todas as
   retentativas dessa chamada. Para ser idempotente entre chamadas (o mesmo
-  pedido da loja depois de um reinício), passa-se uma chave própria.
+  pedido do teu sistema depois de um reinício), passa-se uma chave própria.
 - **Retentativas.** Falha de rede, 429, 500, 502, 503 e 504 repetem-se até
   `WithMaxRetries` vezes (2 por omissão), com espera exponencial e aleatória
   (0,5 s, 1 s, até 8 s), e com o `Retry-After` quando vem (até 30 s). Um 4xx
