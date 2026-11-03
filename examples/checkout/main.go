@@ -154,8 +154,8 @@ func recetor(v webhook.Verifier, saida io.Writer, pagos chan<- pago) http.Handle
 		}
 		if evento.Type == webhook.EventPaymentSucceeded {
 			var p struct {
-				ID                string      `json:"id"`
-				CheckoutSessionID string      `json:"checkout_session_id"`
+				ID                string       `json:"id"`
+				CheckoutSessionID string       `json:"checkout_session_id"`
 				Amount            spolly.Money `json:"amount"`
 			}
 			if err := json.Unmarshal(evento.Data.Object, &p); err != nil {

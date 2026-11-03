@@ -79,6 +79,16 @@ type Customer struct {
 	Name  string `json:"name,omitempty"`
 	// Phone é um telemóvel angolano; a API guarda-o como 244XXXXXXXXX.
 	Phone string `json:"phone,omitempty"`
+	// TaxID é o NIF de quem paga, quando o conheces. Vai para o recibo, do
+	// lado de quem pagou, e é o que faz o documento servir à contabilidade de
+	// uma empresa que compra: sem ele, o recibo prova o pagamento e não prova
+	// de quem é a despesa.
+	//
+	// Dez dígitos numa empresa, ou o número do bilhete de identidade num
+	// empresário em nome individual (nove dígitos, duas letras e três
+	// dígitos). Pontos e hífenes podem ir: a API normaliza. Uma forma que não
+	// bate é *Error em customer.tax_id. Vazio num particular.
+	TaxID string `json:"tax_id,omitempty"`
 }
 
 // CheckoutSessionParams é o pedido de uma sessão de checkout.
